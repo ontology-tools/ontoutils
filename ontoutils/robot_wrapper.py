@@ -5,7 +5,7 @@ from openpyxl import Workbook
 import shutil
 import re
 import csv
-from core import *
+from ontoutils.core import *
 
 
 quoted = re.compile("(?<=')[^']+(?=')")
