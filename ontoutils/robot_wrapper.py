@@ -5,8 +5,6 @@ from openpyxl import Workbook
 import shutil
 import re
 import csv
-import subprocess
-import functools
 from core import *
 
 

@@ -7,6 +7,8 @@ import sys
 import argparse
 import subprocess
 
+from robot_wrapper import *
+
 
 ## PROGRAM EXECUTION --- required arguments: input and output file names, and optional dependencies
 if __name__ == '__main__':
