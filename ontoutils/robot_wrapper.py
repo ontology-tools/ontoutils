@@ -103,8 +103,7 @@ class RobotWrapper:
         Output = subprocess.Popen(command_str,
                 shell=shell_flag,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                executable='/bin/bash')
+                stderr=subprocess.STDOUT)
         stdout,stderr = Output.communicate()
         if stdout is not None and len(stdout) > 0:
             print(stdout)
