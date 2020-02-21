@@ -330,7 +330,7 @@ class RobotTemplateWrapper(RobotWrapper):
     def createCsvRelationTemplateFile(self,csvFileName):
         # Create ROBOT template for NEW properties (parent is not None)
 
-        with open(csvFileName,'w') as rel_create_csv:
+        with open(csvFileName,'w',, newline='') as rel_create_csv:
             rel_writer = csv.writer(rel_create_csv,delimiter=',',quotechar='\"', quoting=csv.QUOTE_MINIMAL)
             rel_writer.writerow(["Id","Name","Type","Parent","Def","Domain","Range"])
             rel_writer.writerow(["ID","LABEL","TYPE","SP %","A IAO:0000115","DOMAIN","RANGE"])
