@@ -64,6 +64,7 @@ class ColumnMapping:
         else:
             value_a = value.encode("ascii","ignore").decode("utf-8")
             value_a = re.sub('\(.*?\)', '', value_a)
+            value_a = re.sub('\[.*?\]', '', value_a)
             value_a = value_a.strip()
             if (self.quoteNeeded):
                 values = value_a.split(';')
@@ -280,6 +281,8 @@ class RobotTemplateWrapper(RobotWrapper):
                         parent = parents.split("/")[0]
                         if '(' in parent:
                             parent = parent.split("(")[0].strip()
+                        if '[' in parent:
+                            parent = parent.split("[")[0].strip()
                         entity.parent = parent
                 if header_val.excelColName == "Examples":
                     examples = col_val
