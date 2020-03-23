@@ -12,6 +12,41 @@ class Relation:
         self.relType = relType
         self.entity2 = entity2
 
+    def getFullLabelForShortLabel(short_label):
+        if short_label == "influences" or short_label == "" or short_label == "+/-" or short_label == 'Bi-directional influence':
+            return ("Influences")
+        if short_label == "positively influences" or short_label == "+":
+            return ("Positively influences")
+        if short_label == "negatively influences" or short_label == "-":
+            return ("Negatively influences")
+        if short_label == "may be influenced by" or short_label == "?" or short_label == "+?":
+            return ("May influence")
+        if short_label == "is influenced (*) by" or short_label == "*":
+            return ("Influences (*)")
+        if short_label == "is influenced (sum) by" or short_label == "Sum":
+            return ("Influences (sum)")
+        if short_label == "correlates with" or short_label == "Correlation" or short_label == "Correlations":
+            return ("Correlates with")
+        if short_label == "Type of":
+            return ("Type of")
+        if short_label == "Part of":
+            return ("Part of")
+        if short_label == "Value of":
+            return ("Value of")
+        if short_label == "Has attribute":
+            return ("Has attribute")
+        if short_label == "Has start":
+            return ("Has start")
+        if short_label == "Has end":
+            return ("Has end")
+        if short_label == "Transition":
+            return ("Transitions to")
+        if short_label == "relates through":
+            return ("Relates through")
+        if short_label == "relates to":
+            return ("To")
+        print ("Label not recognised: ",short_label)
+        return (None)
 
 class ParseLucidChartCsv:
     def parseCsvEntityData(self,csvFileName):
@@ -31,7 +66,7 @@ class ParseLucidChartCsv:
                 source_arrow = row['Source Arrow']
                 dest_arrow = row['Destination Arrow']
 
-                if type in ['Process','Connector']:
+                if type in ['Process','Connector','Terminator']:
                     entity = Entity(name=label,id=id)
                     entities[id] = entity
 
