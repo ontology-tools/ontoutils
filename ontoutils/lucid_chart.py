@@ -49,10 +49,11 @@ class Relation:
         return (None)
 
 class ParseLucidChartCsv:
-    def parseCsvEntityData(self,csvFileName):
+    def parseCsvEntityData(csvFileName):
         entities = {}
         relations = []
 
+        # First parse entities
         with codecs.open(csvFileName, mode='r', encoding="utf-8") as csv_file:
 
             csv_reader = csv.DictReader(csv_file)
@@ -69,6 +70,20 @@ class ParseLucidChartCsv:
                 if type in ['Process','Connector','Terminator']:
                     entity = Entity(name=label,id=id)
                     entities[id] = entity
+
+        # Then parse relations
+        with codecs.open(csvFileName, mode='r', encoding="utf-8") as csv_file:
+
+            csv_reader = csv.DictReader(csv_file)
+
+            for row in csv_reader:
+                id = row['Id']
+                type = row['Name']
+                label = str(row['Text Area 1']).strip()
+                line_source = row['Line Source']
+                line_dest = row['Line Destination']
+                source_arrow = row['Source Arrow']
+                dest_arrow = row['Destination Arrow']
 
                 if type == 'Line':
                     relType = label
@@ -89,7 +104,7 @@ class ParseLucidChartCsv:
                         print("Error parsing relation data:  ",id,type,label,line_source,line_dest)
                         continue
 
-            return ( (entities, relations) )
+        return ( (entities, relations) )
 
 
 
