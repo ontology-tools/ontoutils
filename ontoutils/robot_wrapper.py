@@ -84,6 +84,7 @@ HEADER_MAPPINGS = {"BCIO_ID": getIdMapping("BCIO_ID"),
     "Definition":getAnnotationMapping("Definition","IAO:0000115"),
     "Definition_ID":getAnnotationMapping("Definition_ID","rdfs:isDefinedBy"),
     "Definition_Source":getAnnotationMapping("Definition_source","IAO:0000119"),
+    "Definition source":getAnnotationMapping("Definition source","IAO:0000119"),
     "Examples":getAnnotationMapping("Examples","IAO:0000112"),
     "Examples of usage":getAnnotationMapping("Examples","IAO:0000112"),
     "Elaboration":getAnnotationMapping("Elaboration","IAO:0000112"),
@@ -92,6 +93,8 @@ HEADER_MAPPINGS = {"BCIO_ID": getIdMapping("BCIO_ID"),
     "Comment":getAnnotationMapping("Comment","rdfs:comment"),
                 }
 
+# Unmapped headers that should not be part of the template
+HEADERS_TO_IGNORE = {"Structure","BFO entity","Sub-ontology"}
 
 # Provides a wrapper for easily executing common robot template functionality
 # from within Python based on Excel spreadsheets. See https://github.com/ontodev/robot
@@ -226,13 +229,14 @@ class RobotTemplateWrapper(RobotWrapper):
                 if len(values) > 0:
                     HEADER_MAPPINGS[h]=getRelationshipMapping(h,relId=quoteIfNeeded(values[0]))
 
-        headers_notmapped = [h for h in header if h not in HEADER_MAPPINGS.keys() and h is not None]
+        headers_notmapped = [h for h in header if h not in HEADER_MAPPINGS.keys() and h is not None and h not in HEADERS_TO_IGNORE]
 
         if len(headers_notmapped) > 0:
             print("HEADERS NOT MAPPED: ",headers_notmapped)
             raise Exception("Not able to process template file, as there are unmapped headers.")
 
-        self.headers_mapped = [HEADER_MAPPINGS[h] for h in header if h is not None]
+        self.headers_mapped = [HEADER_MAPPINGS[h] for h in header if h is not None and h not in HEADERS_TO_IGNORE]
+        header_indices = [i for i,h in zip(range(len(header)),header) if h is not None and h not in HEADERS_TO_IGNORE]
 
         # Process the rows, create a CSV template at the same time
         csvFileName = excelFileName.replace(".xlsx",".csv")
@@ -240,11 +244,11 @@ class RobotTemplateWrapper(RobotWrapper):
         csvfile = open(csvFileName, 'w', newline='')
         csv_writer = csv.writer(csvfile, delimiter=',',quotechar='\"', quoting=csv.QUOTE_MINIMAL)
 
-        csv_writer.writerow(header)
+        csv_writer.writerow([header[i] for i in header_indices])
         csv_writer.writerow([c.getRobotCodeString() for c in self.headers_mapped])
 
         for row in data:
-            row = row[0:len(self.headers_mapped)]
+            row = [row[i] for i in header_indices] # just those headers that are mapped
             row = [r.value for r in row]
             l = [mapping.parseValue(i) for (i,mapping) in zip(row,self.headers_mapped)]
             csv_writer.writerow(l)
