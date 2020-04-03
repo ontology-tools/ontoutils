@@ -30,6 +30,8 @@ def getRelationshipMapping(columnName,relId = None):
     return ColumnMapping(columnName,ColumnMapping.ROBOT_TYPE_RELATION,relId)
 def getAnnotationMapping(columnName,annoId):
     return ColumnMapping(columnName,ColumnMapping.ROBOT_TYPE_ANNOTATION,annoId)
+def getDisjointMappint(columnName):
+    return ColumnMapping(columnName,ColumnMapping.ROBOT_TYPE_DISJOINT)
 
 
 class ColumnMapping:
@@ -38,13 +40,14 @@ class ColumnMapping:
     ROBOT_TYPE_PARENT = 3
     ROBOT_TYPE_RELATION = 4
     ROBOT_TYPE_ANNOTATION = 5
+    ROBOT_TYPE_DISJOINT = 6
 
     def __init__(self,excelColName,robotType,mappingId=None):
         self.excelColName = excelColName
         self.robotType = robotType
         self.mappingId = mappingId # relationship or annotation ID
         self.quoteNeeded = robotType in [ColumnMapping.ROBOT_TYPE_PARENT,
-            ColumnMapping.ROBOT_TYPE_RELATION,ColumnMapping.ROBOT_TYPE_ANNOTATION]
+            ColumnMapping.ROBOT_TYPE_RELATION,ColumnMapping.ROBOT_TYPE_DISJOINT]
 
     def getRobotCodeString(self):
         if self.robotType == ColumnMapping.ROBOT_TYPE_ID:
@@ -57,6 +60,8 @@ class ColumnMapping:
             return "SC "+self.mappingId+" some % SPLIT=;"
         elif self.robotType == ColumnMapping.ROBOT_TYPE_ANNOTATION:
             return "A "+self.mappingId+" SPLIT=;"
+        elif self.robotType == ColumnMapping.ROBOT_TYPE_DISJOINT:
+            return "DC % SPLIT=;"
 
     def parseValue(self,value):
         if value is None:
@@ -81,6 +86,7 @@ HEADER_MAPPINGS = {"BCIO_ID": getIdMapping("BCIO_ID"),
     "Label (synonym)": getLabelMapping("Label"),
     "Parent": getParentMapping("Parent"),
     "Parent class/ BFO class": getParentMapping("Parent"),
+    "Disjoint classes": getDisjointMappint("Disjoint classes"),
     "Definition":getAnnotationMapping("Definition","IAO:0000115"),
     "Definition_ID":getAnnotationMapping("Definition_ID","rdfs:isDefinedBy"),
     "Definition_Source":getAnnotationMapping("Definition_source","IAO:0000119"),
