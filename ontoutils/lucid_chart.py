@@ -24,7 +24,7 @@ class Relation:
         if short_label == "is influenced (*) by" or short_label == "*":
             return ("Influences (*)")
         if short_label == "is influenced (sum) by" or short_label == "Sum":
-            return ("Influences (sum)")
+            return ("Influences (+)")
         if short_label == "correlates with" or short_label == "Correlation" or short_label == "Correlations":
             return ("Correlates with")
         if short_label == "Type of":

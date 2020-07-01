@@ -41,13 +41,14 @@ class ColumnMapping:
     ROBOT_TYPE_RELATION = 4
     ROBOT_TYPE_ANNOTATION = 5
     ROBOT_TYPE_DISJOINT = 6
+    ROBOT_TYPE_EQUIVALENCE = 7
 
     def __init__(self,excelColName,robotType,mappingId=None):
         self.excelColName = excelColName
         self.robotType = robotType
         self.mappingId = mappingId # relationship or annotation ID
         self.quoteNeeded = robotType in [ColumnMapping.ROBOT_TYPE_PARENT,
-            ColumnMapping.ROBOT_TYPE_RELATION,ColumnMapping.ROBOT_TYPE_DISJOINT]
+            ColumnMapping.ROBOT_TYPE_RELATION,ColumnMapping.ROBOT_TYPE_DISJOINT,ColumnMapping.ROBOT_TYPE_EQUIVALENCE]
 
     def getRobotCodeString(self):
         if self.robotType == ColumnMapping.ROBOT_TYPE_ID:
@@ -62,6 +63,8 @@ class ColumnMapping:
             return "A "+self.mappingId+" SPLIT=;"
         elif self.robotType == ColumnMapping.ROBOT_TYPE_DISJOINT:
             return "DC % SPLIT=;"
+        elif self.robotType == ColumnMapping.ROBOT_TYPE_EQUIVALENCE:
+            return "EC %"
 
     def parseValue(self,value):
         if value is None:
@@ -86,6 +89,7 @@ HEADER_MAPPINGS = {"BCIO_ID": getIdMapping("BCIO_ID"),
     "Label (synonym)": getLabelMapping("Label"),
     "Parent": getParentMapping("Parent"),
     "Parent class/ BFO class": getParentMapping("Parent"),
+    "Logical definition": getEquivalenceMapping("Logical definition"),
     "Disjoint classes": getDisjointMappint("Disjoint classes"),
     "Definition":getAnnotationMapping("Definition","IAO:0000115"),
     "Definition_ID":getAnnotationMapping("Definition_ID","rdfs:isDefinedBy"),
