@@ -30,8 +30,10 @@ def getRelationshipMapping(columnName,relId = None):
     return ColumnMapping(columnName,ColumnMapping.ROBOT_TYPE_RELATION,relId)
 def getAnnotationMapping(columnName,annoId):
     return ColumnMapping(columnName,ColumnMapping.ROBOT_TYPE_ANNOTATION,annoId)
-def getDisjointMappint(columnName):
+def getDisjointMapping(columnName):
     return ColumnMapping(columnName,ColumnMapping.ROBOT_TYPE_DISJOINT)
+def getEquivalenceMapping(columnName):
+    return ColumnMapping(columnName,ColumnMapping.ROBOT_TYPE_EQUIVALENCE)
 
 
 class ColumnMapping:
@@ -90,7 +92,7 @@ HEADER_MAPPINGS = {"BCIO_ID": getIdMapping("BCIO_ID"),
     "Parent": getParentMapping("Parent"),
     "Parent class/ BFO class": getParentMapping("Parent"),
     "Logical definition": getEquivalenceMapping("Logical definition"),
-    "Disjoint classes": getDisjointMappint("Disjoint classes"),
+    "Disjoint classes": getDisjointMapping("Disjoint classes"),
     "Definition":getAnnotationMapping("Definition","IAO:0000115"),
     "Definition_ID":getAnnotationMapping("Definition_ID","rdfs:isDefinedBy"),
     "Definition_Source":getAnnotationMapping("Definition_source","IAO:0000119"),
@@ -140,7 +142,7 @@ class RobotImportsWrapper(RobotWrapper):
         sheet = wb.active
         data = sheet.rows
 
-        header = [i.value for i in next(data)[0:4]]
+        header = [i.value for i in next(data)[0:5]]
 
         formerge = []
 
@@ -148,18 +150,25 @@ class RobotImportsWrapper(RobotWrapper):
             os.mkdir("temp")
 
         for row in data:
-            rowdata = [i.value for i in row[0:4]]
+            rowdata = [i.value for i in row[0:5]]
             onto_id = rowdata[0]
             purl = rowdata[1]
             root_id = rowdata[2]
             ids = rowdata[3]
+            intermediates = rowdata[4]
+            print("GOT INTERMEDIATES: ",intermediates)
+
+            if intermediates is None: intermediates = 'minimal'
+
             onto_shortname = purl[(purl.rindex('/')+1):]
 
-            get_ontology_cmd = 'curl -L '+purl+' > temp/' +onto_shortname
-            self.__executeCommand__(get_ontology_cmd,shell_flag=True)
+            # Only download if we don't already have it.
+            #Use cleanup=TRUE to clean up afterwards for fresh download next time.
+            if not os.path.exists("temp/"+onto_shortname):
+                get_ontology_cmd = 'curl -L '+purl+' > temp/' +onto_shortname
+                self.__executeCommand__(get_ontology_cmd,shell_flag=True)
 
             root_id = root_id[root_id.find("[")+1:root_id.find("]")] # extract just the ID
-            intermediates = 'all'
             filename = 'temp/'+onto_id+'-slim.owl'
             slim_cmd = [self.robotcmd, 'merge',
                     '--input', 'temp/'+onto_shortname,
@@ -191,6 +200,39 @@ class RobotImportsWrapper(RobotWrapper):
         # Now delete the temp directory
         if (self.cleanup): shutil.rmtree('temp')
 
+    def addAdditionalParents(self, importsParentsFileName,                                         importsOWLURI,importsOWLFileName):
+        owlFileName = importsOWLURI[(importsOWLURI.rindex('/')+1):]
+        owlTempFileName = owlFileName.replace(".owl","-temp.owl")
+        oboFileName = owlFileName.replace(".owl",".obo")
+
+        robot_cmd = [self.robotcmd, 'template', '--template', importsParentsFileName,
+                '--ontology-iri', importsOWLURI,
+                '--output', owlTempFileName
+                ]
+
+        robot_cmd = " ".join(robot_cmd)
+
+        print("About to execute Robot command: ",robot_cmd)
+
+        self.__executeCommand__(command_str=robot_cmd)
+
+        robot_cmd = [self.robotcmd, 'merge', '--input',owlFileName,'--input',owlTempFileName, '--output',owlFileName]
+
+        robot_cmd = " ".join(robot_cmd)
+
+        print("About to execute Robot command: ",robot_cmd)
+
+        self.__executeCommand__(command_str=robot_cmd)
+
+        # Also save an OBO (For Pronto)
+
+        robot_cmd = [self.robotcmd, 'convert', '--input',owlFileName,'--output',oboFileName, '--check','false']
+
+        robot_cmd = " ".join(robot_cmd)
+
+        print("About to execute Robot command: ",robot_cmd)
+
+        self.__executeCommand__(command_str=robot_cmd)
 
 
 class RobotTemplateWrapper(RobotWrapper):
