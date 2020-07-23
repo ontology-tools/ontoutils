@@ -49,7 +49,7 @@ class ColumnMapping:
         self.excelColName = excelColName
         self.robotType = robotType
         self.mappingId = mappingId # relationship or annotation ID
-        self.quoteNeeded = robotType in [ColumnMapping.ROBOT_TYPE_PARENT,
+        self.quoteNeeded = robotType in [
             ColumnMapping.ROBOT_TYPE_RELATION,ColumnMapping.ROBOT_TYPE_DISJOINT,ColumnMapping.ROBOT_TYPE_EQUIVALENCE]
 
     def getRobotCodeString(self):
@@ -468,13 +468,14 @@ class RobotTemplateWrapper(RobotWrapper):
             entity = self.all_entity_names[entity_name.lower()]
             parent_name = entity.parent.lower() if entity.parent.lower() in import_classes else self.all_entity_names[entity.parent.lower()].name
             rel_vals = [";".join([z.name for z in x]) if len(x)>0 else '' for x in [entity.relations[y.name] if entity.relations is not None and y.name in entity.relations else [] for y in self.all_rel_names.values()]]
+            #print([y.name for y in self.all_rel_names.values()])
+            #print(entity_name,rel_vals)
             row = (entity.id,
                 entity.name,
                 parent_name,
                 entity.definition,
                 ";".join(entity.synonyms),
                 entity.examples,
-                entity.comment,
                 *rel_vals
             )
             sheet.append(row)
