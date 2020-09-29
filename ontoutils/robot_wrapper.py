@@ -50,7 +50,7 @@ class ColumnMapping:
         self.robotType = robotType
         self.mappingId = mappingId # relationship or annotation ID
         self.quoteNeeded = robotType in [
-            ColumnMapping.ROBOT_TYPE_RELATION,ColumnMapping.ROBOT_TYPE_DISJOINT,ColumnMapping.ROBOT_TYPE_EQUIVALENCE]
+            ColumnMapping.ROBOT_TYPE_DISJOINT]
 
     def getRobotCodeString(self):
         if self.robotType == ColumnMapping.ROBOT_TYPE_ID:
@@ -58,7 +58,7 @@ class ColumnMapping:
         elif self.robotType == ColumnMapping.ROBOT_TYPE_LABEL:
             return "LABEL"
         elif self.robotType == ColumnMapping.ROBOT_TYPE_PARENT:
-            return "SC %"
+            return "SC % SPLIT=;"
         elif self.robotType == ColumnMapping.ROBOT_TYPE_RELATION:
             return "SC "+self.mappingId+" some % SPLIT=;"
         elif self.robotType == ColumnMapping.ROBOT_TYPE_ANNOTATION:
@@ -150,13 +150,13 @@ class RobotImportsWrapper(RobotWrapper):
             os.mkdir("temp")
 
         for row in data:
-            rowdata = [i.value for i in row[0:5]]
+            rowdata = [i.value for i in row[0:6]]
             onto_id = rowdata[0]
             purl = rowdata[1]
             root_id = rowdata[2]
             ids = rowdata[3]
             intermediates = rowdata[4]
-            print("GOT INTERMEDIATES: ",intermediates)
+            prefix = rowdata[5]
 
             if intermediates is None: intermediates = 'minimal'
 
@@ -177,6 +177,9 @@ class RobotImportsWrapper(RobotWrapper):
                     '--upper-term',root_id,
                     '--intermediates', intermediates,
                     '--output', filename ]
+            if prefix:
+                slim_cmd.append('--prefix')
+                slim_cmd.append(prefix)
             terms = ids.split(";")
             for term_id in terms:
                 term_id = term_id[term_id.find("[")+1:term_id.find("]")] # extract just the ID
@@ -200,12 +203,11 @@ class RobotImportsWrapper(RobotWrapper):
         # Now delete the temp directory
         if (self.cleanup): shutil.rmtree('temp')
 
-    def addAdditionalParents(self, importsParentsFileName,                                         importsOWLURI,importsOWLFileName):
+    def addAdditionalContent(self, extraContentTemplate,                                         importsOWLURI,importsOWLFileName):
         owlFileName = importsOWLURI[(importsOWLURI.rindex('/')+1):]
         owlTempFileName = owlFileName.replace(".owl","-temp.owl")
-        oboFileName = owlFileName.replace(".owl",".obo")
 
-        robot_cmd = [self.robotcmd, 'template', '--template', importsParentsFileName,
+        robot_cmd = [self.robotcmd, 'template', '--template', extraContentTemplate,
                 '--ontology-iri', importsOWLURI,
                 '--output', owlTempFileName
                 ]
@@ -224,15 +226,41 @@ class RobotImportsWrapper(RobotWrapper):
 
         self.__executeCommand__(command_str=robot_cmd)
 
-        # Also save an OBO (For Pronto)
 
-        robot_cmd = [self.robotcmd, 'convert', '--input',owlFileName,'--output',oboFileName, '--check','false']
+    # Remove metadata that causes a problem in Pronto
+    # Overwrites original file so be careful
+    def removeProblemMetadata(self, importsOWLURI, importsOWLFileName, metadataURIFile):
+
+        robot_cmd = [self.robotcmd, 'remove', '--input', importsOWLFileName,
+                '--term-file', metadataURIFile,
+                '--axioms', 'annotation',
+                '--output', importsOWLFileName
+                ]
 
         robot_cmd = " ".join(robot_cmd)
 
         print("About to execute Robot command: ",robot_cmd)
 
         self.__executeCommand__(command_str=robot_cmd)
+
+
+
+    # Also save an OBO (For Pronto)
+    def createOBOFile(self, importsOWLURI, importsOWLFileName):
+        owlFileName = importsOWLURI[(importsOWLURI.rindex('/')+1):]
+
+        oboFileName = owlFileName.replace(".owl",".obo")
+
+        robot_cmd = [self.robotcmd, 'merge', '--input', owlFileName, 'convert', '--output',oboFileName, '--check','false']
+
+        robot_cmd = " ".join(robot_cmd)
+
+        print("About to execute Robot command: ",robot_cmd)
+
+        self.__executeCommand__(command_str=robot_cmd)
+
+
+
 
 
 class RobotTemplateWrapper(RobotWrapper):

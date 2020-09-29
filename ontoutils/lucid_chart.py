@@ -61,7 +61,7 @@ class ParseLucidChartCsv:
             for row in csv_reader:
                 id = row['Id']
                 type = row['Name']
-                label = str(row['Text Area 1']).strip()
+                label = str(row['Text Area 1']).strip().replace("  "," ")
                 line_source = row['Line Source']
                 line_dest = row['Line Destination']
                 source_arrow = row['Source Arrow']
