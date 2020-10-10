@@ -106,7 +106,7 @@ HEADER_MAPPINGS = {"BCIO_ID": getIdMapping("BCIO_ID"),
                 }
 
 # Unmapped headers that should not be part of the template
-HEADERS_TO_IGNORE = {"Structure","BFO entity","Sub-ontology"}
+HEADERS_TO_IGNORE = {"Structure","BFO entity","Sub-ontology","Informal definition"}
 
 # Provides a wrapper for easily executing common robot template functionality
 # from within Python based on Excel spreadsheets. See https://github.com/ontodev/robot
@@ -312,8 +312,10 @@ class RobotTemplateWrapper(RobotWrapper):
         headers_notmapped = [h for h in header if h not in HEADER_MAPPINGS.keys() and h is not None and h not in HEADERS_TO_IGNORE]
 
         if len(headers_notmapped) > 0:
-            print("HEADERS NOT MAPPED: ",headers_notmapped)
-            raise Exception("Not able to process template file, as there are unmapped headers.")
+            print("HEADERS NOT MAPPED: ",headers_notmapped, "IGNORING...")
+            for h in headers_notmapped:
+                HEADERS_TO_IGNORE.append(h)
+
 
         self.headers_mapped = [HEADER_MAPPINGS[h] for h in header if h is not None and h not in HEADERS_TO_IGNORE]
         header_indices = [i for i,h in zip(range(len(header)),header) if h is not None and h not in HEADERS_TO_IGNORE]
@@ -553,3 +555,33 @@ class RobotTemplateWrapper(RobotWrapper):
 
 
 
+class RobotSubsetWrapper(RobotWrapper):
+
+    def __init__(self,robotcmd):
+        self.robotcmd = robotcmd
+
+    def createSubsetFrom(self, inputOntologyFileName, outputFileName, rootId, idPrefix, exportCsvHeaders=None,exportSort=None):
+        robot_cmd = [self.robotcmd,'merge',
+        '--input', inputOntologyFileName,
+         'extract',
+        '--method', 'MIREOT',
+        '--prefix', idPrefix,
+        '--annotate-with-source', 'true',
+        '--branch-from-term',rootId,
+        '--intermediates', 'all']
+
+        if exportCsvHeaders:
+            robot_cmd.extend(['export','--header','"'+exportCsvHeaders+'"',
+                            '--prefix', idPrefix,
+                            '--split', '"; "',
+                            '--export',outputFileName])
+            if exportSort:
+                robot_cmd.extend(['--sort','"'+exportSort+'"'])
+        else:
+            robot_cmd.extend( ['--output', outputFileName ] )
+
+        robot_cmd = " ".join(robot_cmd)
+
+        print("About to execute Robot command: ",robot_cmd)
+
+        self.__executeCommand__(command_str=robot_cmd)
