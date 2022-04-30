@@ -106,7 +106,7 @@ HEADER_MAPPINGS = {"BCIO_ID": getIdMapping("BCIO_ID"),
                 }
 
 # Unmapped headers that should not be part of the template
-HEADERS_TO_IGNORE = {"Structure","BFO entity","Sub-ontology","Informal definition"}
+HEADERS_TO_IGNORE = ["Structure","BFO entity","Sub-ontology","Informal definition"]
 
 # Provides a wrapper for easily executing common robot template functionality
 # from within Python based on Excel spreadsheets. See https://github.com/ontodev/robot
@@ -514,12 +514,14 @@ class RobotTemplateWrapper(RobotWrapper):
 
 
     # Executes ROBOT from a template file as created
-    def createOntologyFromTemplateFile(self, csvFileName, dependency, iri_prefix, id_prefix, ontology_iri,owlFileName):
-        robot_cmd = [self.robotcmd, 'template', '--template', csvFileName,
-                '--prefix', id_prefix,
-                '--ontology-iri', ontology_iri,
+    def createOntologyFromTemplateFile(self, csvFileName, dependency, iri_prefix, id_prefixes, ontology_iri,owlFileName):
+        robot_cmd = [self.robotcmd, 'template', '--template', csvFileName]
+        for p in id_prefixes:
+            robot_cmd.append('--prefix')
+            robot_cmd.append(p)
+        robot_cmd.extend(   ['--ontology-iri', ontology_iri,
                 '--output', owlFileName
-                ]
+                ] )
 
         # A bit of hacking to deal appropriately with external dependency files:
         if dependency is not None:
