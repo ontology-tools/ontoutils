@@ -103,6 +103,7 @@ HEADER_MAPPINGS = {"BCIO_ID": getIdMapping("BCIO_ID"),
     "Curator note":getAnnotationMapping("Curator note","IAO:0000232"),
     "Synonyms":getAnnotationMapping("Synonyms","IAO:0000118"),
     "Comment":getAnnotationMapping("Comment","rdfs:comment"),
+    "Curation status":getAnnotationMapping("Curation status","IAO:0000078")
                 }
 
 # Unmapped headers that should not be part of the template
@@ -333,7 +334,7 @@ class RobotTemplateWrapper(RobotWrapper):
             row = [row[i] for i in header_indices] # just those headers that are mapped
             row = [r.value for r in row]
             l = [mapping.parseValue(i) for (i,mapping) in zip(row,self.headers_mapped)]
-            csv_writer.writerow(l)
+
             entity = OntologyEntity()
             # Now also process and store the values for merging if needed
             for col_val,header_val in zip(row,self.headers_mapped):
@@ -358,7 +359,9 @@ class RobotTemplateWrapper(RobotWrapper):
                             self.all_entity_names[synonym.lower()] = entity
                 if header_val.excelColName == "Synonyms" and col_val is not None:
                     more_synonyms = col_val.split(";")
-                    entity.synonyms.append(more_synonyms)
+                    entity.synonyms.extend(more_synonyms)
+                    for synonym in more_synonyms:
+                        self.all_entity_names[synonym.lower().strip()] = entity
                 if header_val.excelColName == "Definition":
                     entity.definition = col_val
                 if header_val.excelColName == "Parent":
@@ -378,6 +381,13 @@ class RobotTemplateWrapper(RobotWrapper):
                     comment = col_val
                     if comment is not None and len(comment) > 0:
                         entity.comment = comment
+                if header_val.excelColName == "Curation status":
+                    entity.curationStatus = col_val
+
+            if entity.curationStatus not in ['Obsolete']:
+                csv_writer.writerow(l)
+            else:
+                print("Not writing row to template due to obsolete status",entity.name)
 
         # close the csv file
         csvfile.close()
@@ -435,11 +445,12 @@ class RobotTemplateWrapper(RobotWrapper):
 
     def mergeRelInfoFromLucidChart(self,entities,relations):
         # Merge lucidchart information with definitions information to populate relations
-        for entity in entities.values():
-            entity_name = entity.name.replace('\n',' ') # just the name matters
-            # do we have this entity name in our all_entities?
-            if entity_name.lower() not in self.all_entity_names.keys():
-                print("ERROR: Name ", entity_name, "NOT FOUND.")
+        #for entity in entities.values():
+        #    entity_name = entity.name.replace('\n',' ') # just the name matters
+        #    # do we have this entity name in our all_entities?
+        #    if entity_name.lower().strip() not in self.all_entity_names.keys():
+        #        print("ERROR: Name ", entity_name, "NOT FOUND.")
+        #        print(self.all_entity_names.keys())
 
         for rel in relations:
             rel_name = rel.relType
@@ -447,10 +458,11 @@ class RobotTemplateWrapper(RobotWrapper):
                 rel_name = rel_name[0:rel_name.rindex('(')].strip()
             if rel_name.lower() not in self.all_rel_names.keys():
                 print("ERROR: Rel ", rel_name, "NOT FOUND.")
+                print(self.all_rel_names.keys())
                 continue
             onto_rel = self.all_rel_names[rel_name.lower()]
-            onto_entity1 = self.all_entity_names[rel.entity1.name.replace('\n',' ').lower()]
-            onto_entity2 = self.all_entity_names[rel.entity2.name.replace('\n',' ').lower()]
+            onto_entity1 = self.all_entity_names[rel.entity1.name.replace('\n',' ').lower().strip()]
+            onto_entity2 = self.all_entity_names[rel.entity2.name.replace('\n',' ').lower().strip()]
             if onto_entity1.relations is None:
                 onto_entity1.relations = {}
             if onto_rel.name not in onto_entity1.relations.keys():

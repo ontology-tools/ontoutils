@@ -11,6 +11,7 @@ class OntologyEntity:
         self.comment = None
         self.axioms = None  # May include equivalence axioms
         self.relations = None
+        self.curationStatus = None
     def __str__(self):
         return str(self.__class__) + ": " + str(self.__dict__)
 
