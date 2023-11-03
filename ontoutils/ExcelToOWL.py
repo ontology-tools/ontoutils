@@ -1,14 +1,7 @@
-import os
-import re
-import openpyxl
-import csv
-import codecs
 import sys
 import argparse
-import subprocess
 
-from robot_wrapper import *
-
+from ontoutils.RobotTemplateWrapper import RobotTemplateWrapper
 
 ## PROGRAM EXECUTION --- required arguments: input and output file names, and optional dependencies
 if __name__ == '__main__':
@@ -31,7 +24,7 @@ if __name__ == '__main__':
 
     robotWrapper = RobotTemplateWrapper(robotcmd='robot')
 
-    csvFileName = robotWrapper.processClassInfoFromExcel(inputFileName)
+    csvFileName = robotWrapper.add_classes_from_excel(inputFileName)
 
 
 ## EXECUTE THE ROBOT COMMAND AS A SUB-PROCESS
