@@ -107,45 +107,44 @@ class RobotImportsWrapper(RobotWrapper):
         if not os.path.exists(download_path):
             os.mkdir(download_path)
 
-        def download(imp: OntologyImport) -> None:
-            # Only download if we don't already have it.
-            # Use cleanup=TRUE to clean up afterwards for fresh download next time.
-            out = os.path.join(download_path, imp.short_name)
-            if not os.path.exists(out):
-                get_ontology_cmd = f'curl -L "{imp.purl}" > {out}'
-                self._execute_command(get_ontology_cmd, shell_flag=True)
-
         with Pool(4) as p:
-            p.map(download, self.imports)
+            p.starmap(self._download_ontology, [(x, download_path) for x in self.imports])
 
+
+    def _download_ontology(self, imp: OntologyImport, download_path: str) -> None:
+        # Only download if we don't already have it.
+        # Use cleanup=TRUE to clean up afterwards for fresh download next time.
+        out = os.path.join(download_path, imp.short_name)
+        if not os.path.exists(out):
+            get_ontology_cmd = f'curl -L "{imp.purl}" > {out}'
+            self._execute_command(get_ontology_cmd, shell_flag=True)
 
     def extract_slim_ontologies(self, download_path='temp') -> None:
         """
         Extracts the imported terms from the registered imported ontologies. Requires the ontologies to be present in `download_path`
         """
-
-        def extract(imp: OntologyImport) -> None:
-            filename = os.path.join(download_path, imp.slim_file)
-            slim_cmd = [self.robotcmd, 'merge',
-                        '--input', f'"{os.path.join(download_path, imp.short_name)}"',
-                        'extract', '--method', 'MIREOT',
-                        '--annotate-with-source', 'true',
-                        '--upper-term', imp.root_id,
-                        '--intermediates', imp.intermediates,
-                        '--output', filename]
-            if imp.prefix:
-                slim_cmd.append('--prefix')
-                slim_cmd.append(imp.prefix)
-
-            for term_id in imp.imported_terms:
-                slim_cmd.append('--lower-term')
-                slim_cmd.append(term_id)
-
-            slim_cmd = " ".join(slim_cmd)
-            self._execute_command(slim_cmd, shell_flag=True)
-
         with Pool(4) as p:
-            p.map(extract, self.imports)
+            p.starmap(self._extract_slim_ontology, [(x, download_path) for x in self.imports])
+
+    def _extract_slim_ontology(self, imp: OntologyImport, download_path: str) -> None:
+        filename = os.path.join(download_path, imp.slim_file)
+        slim_cmd = [self.robotcmd, 'merge',
+                    '--input', f'"{os.path.join(download_path, imp.short_name)}"',
+                    'extract', '--method', 'MIREOT',
+                    '--annotate-with-source', 'true',
+                    '--upper-term', imp.root_id,
+                    '--intermediates', imp.intermediates,
+                    '--output', filename]
+        if imp.prefix:
+            slim_cmd.append('--prefix')
+            slim_cmd.append(imp.prefix)
+
+        for term_id in imp.imported_terms:
+            slim_cmd.append('--lower-term')
+            slim_cmd.append(term_id)
+
+        slim_cmd = " ".join(slim_cmd)
+        self._execute_command(slim_cmd, shell_flag=True)
 
     def merge_ontologies(self, merged_iri: str, merged_file: str, merged_ontology_name: str):
         """

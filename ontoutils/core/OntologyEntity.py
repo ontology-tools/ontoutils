@@ -9,7 +9,10 @@ class OntologyEntity:
         self.comment = None
         self.axioms = None  # May include equivalence axioms
         self.relations = None
-        self.curationStatus = None
+        self.curation_status = None
+        self.logical_definition = None
+        self.definition_source = None
+        self.curator_note = None
 
     def __str__(self):
         return str(self.__class__) + ": " + str(self.__dict__)

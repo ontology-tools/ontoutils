@@ -6,56 +6,12 @@ from typing import Optional
 import openpyxl
 from openpyxl import Workbook
 
-from ontoutils.core.ColumnMapping import ColumnMapping, get_relationship_mapping, DEFAULT_HEADER_MAPPINGS, \
+from .core import ColumnMapping, get_relationship_mapping, DEFAULT_HEADER_MAPPINGS, \
     DEFAULT_HEADERS_TO_IGNORE, RobotType
-from ontoutils.RobotWrapper import RobotWrapper
-from ontoutils.core import OntologyEntity, OntologyRelation
-from ontoutils.utils import quoteIfNeeded, quoted
+from .RobotWrapper import RobotWrapper
+from .core import OntologyEntity, OntologyRelation
+from .utils import quoteIfNeeded, quoted
 
-
-def patch_entity_from_excel_col(entity: OntologyEntity, col_val: str, header_val: ColumnMapping):
-    if header_val.robotType == RobotType.ROBOT_TYPE_ID:
-        entity.id = col_val
-
-    if header_val.robotType == RobotType.ROBOT_TYPE_LABEL:
-        name = col_val
-        entity.name = name
-        entity.synonyms = []
-        if '(' in name and ')' in name:
-            synonym = re.search(r'\((.*?)\)', name).group(1)
-            if len(synonym) > 0:
-                name = name[:name.index("(")].strip()
-                entity.name = name
-                entity.synonyms = [synonym]
-
-    if header_val.excelColName == "Synonyms":
-        more_synonyms = col_val.split(";")
-        entity.synonyms.extend(more_synonyms)
-
-    if header_val.excelColName == "Definition":
-        entity.definition = col_val
-
-    if header_val.excelColName == "Parent":
-        parents = col_val
-        parent = parents.split("/")[0]
-        if '(' in parent:
-            parent = parent[:parent.index("(")].strip()
-        if '[' in parent:
-            parent = parent[:parent.index("[")].strip()
-        entity.parent = parent
-
-    if header_val.excelColName == "Examples":
-        examples = col_val
-        if len(examples) > 0:
-            entity.examples = examples
-
-    if header_val.excelColName == "Comment":
-        comment = col_val
-        if len(comment) > 0:
-            entity.comment = comment
-
-    if header_val.excelColName == "Curation status":
-        entity.curationStatus = col_val
 
 class RobotTemplateWrapper(RobotWrapper):
     _logger = logging.getLogger(__name__)
@@ -151,7 +107,8 @@ class RobotTemplateWrapper(RobotWrapper):
                 if value is None:
                     continue
 
-                patch_entity_from_excel_col(entity, value, mapping)
+                value = value.strip()
+                self._patch_entity_from_excel_col(entity, value, mapping)
 
             self.all_entity_ids[entity.id] = entity
             self.all_entity_names[entity.name.lower()] = entity
@@ -160,7 +117,7 @@ class RobotTemplateWrapper(RobotWrapper):
                 self.all_entity_names[synonym.lower()] = entity
 
             if write_csv:
-                if entity.curationStatus not in ['Obsolete']:
+                if entity.curation_status not in ['Obsolete']:
                     csv_writer.writerow(new_row)
                 else:
                     self._logger.info(f"Not writing row for entity '{entity.name}' to template due to obsolete status")
@@ -195,6 +152,71 @@ class RobotTemplateWrapper(RobotWrapper):
             for h in headers_not_mapped:
                 self.ignored_headers.append(h)
         return header
+
+    def _patch_entity_from_excel_col(self, entity: OntologyEntity, col_val: str, header_val: ColumnMapping):
+        patched = False
+        if header_val.robotType == RobotType.ROBOT_TYPE_ID:
+            entity.id = col_val
+            patched = True
+
+        if header_val.robotType == RobotType.ROBOT_TYPE_LABEL:
+            name = col_val
+            entity.name = name
+            entity.synonyms = []
+            if '(' in name and ')' in name:
+                synonym = re.search(r'\((.*?)\)', name).group(1)
+                if len(synonym) > 0:
+                    name = name[:name.index("(")].strip()
+                    entity.name = name
+                    entity.synonyms = [synonym]
+            patched = True
+
+        if header_val.excelColName == "Synonyms":
+            more_synonyms = col_val.split(";")
+            entity.synonyms.extend(more_synonyms)
+            patched = True
+
+        if header_val.excelColName == "Definition":
+            entity.definition = col_val
+            patched = True
+
+        if header_val.excelColName == "Parent":
+            parents = col_val
+            parent = parents.split("/")[0]
+            if '(' in parent:
+                parent = parent[:parent.index("(")].strip()
+            if '[' in parent:
+                parent = parent[:parent.index("[")].strip()
+            entity.parent = parent
+            patched = True
+
+        if header_val.excelColName == "Examples":
+            examples = col_val
+            if len(examples) > 0:
+                entity.examples = examples
+            patched = True
+
+        if header_val.excelColName == "Comment":
+            comment = col_val
+            if len(comment) > 0:
+                entity.comment = comment
+            patched = True
+
+        if header_val.excelColName == "Curation status":
+            entity.curation_status = col_val
+            patched = True
+
+        if header_val.excelColName == "Curator note":
+            entity.curator_note = col_val
+            patched = True
+
+        if header_val.excelColName == "Logical note":
+            entity.logical_definition = col_val
+            patched = True
+
+        if not patched and not header_val.excelColName.startswith("REL"):
+            self._logger.warning(
+                f"Mapped column '{header_val.excelColName}' value was not handled for entity {entity.name}: {col_val}")
 
     def add_rel_info_from_excel(self, excel_file_name: str) -> None:
         """
@@ -281,7 +303,7 @@ class RobotTemplateWrapper(RobotWrapper):
         sheet = book.active
 
         rel_header_ids = ["REL '" + s.name + "' [" + s.id + "]" for s in self.all_rel_names.values()]
-        header = (id_col_name, 'Name', 'Parent', 'Definition', 'Synonyms', 'Examples', *rel_header_ids)
+        header = (id_col_name, 'Name', 'Parent', 'Definition', 'Logical definition', 'Definition source', 'Synonyms', 'Examples', 'Comment', 'Curation status', 'Curator note', *rel_header_ids)
 
         sheet.append(header)
 
@@ -325,8 +347,13 @@ class RobotTemplateWrapper(RobotWrapper):
                    entity.name,
                    parent_name,
                    entity.definition,
+                   entity.logical_definition,
+                   entity.definition_source,
                    ";".join(entity.synonyms),
                    entity.examples,
+                   entity.comment,
+                   entity.curation_status,
+                   entity.curator_note,
                    *rel_vals
                    )
             sheet.append(row)

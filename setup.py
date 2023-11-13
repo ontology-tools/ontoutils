@@ -1,7 +1,7 @@
 from distutils.core import setup
 setup(
   name = 'ontoutils',         # How you named your package folder (MyLib)
-  packages = ['ontoutils'],   # Chose the same as "name"
+  packages = ['ontoutils', "ontoutils.core"],   # Chose the same as "name"
   version = '0.8',      # Start with a small number and increase it with every change you make
   license='MIT',        # Chose a license from here: https://help.github.com/articles/licensing-a-repository
   description = 'A collection of utility scripts mainly for translating content from Excel spreadsheets into OWL ontologies',   # Give a short description about your library
